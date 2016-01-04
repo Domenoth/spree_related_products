@@ -35,7 +35,10 @@ module Spree
         @relation = Relation.find(params[:id])
         @relation.destroy
 
-        redirect_to :back
+        respond_to do |format|
+          format.js { render json: @relation.to_json, status: 204 }
+          format.html { redirect_to :back }
+        end
       end
 
       private

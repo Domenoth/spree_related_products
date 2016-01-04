@@ -6,9 +6,17 @@ RSpec.describe Spree::Admin::RelationsController, type: :controller do
   let!(:other1)  { create(:product) }
 
   let!(:relation_type) { create(:relation_type) }
-  let!(:relation) { create(:relation, relatable: product, related_to: other1, relation_type: relation_type, position: 0) }
+  let!(:relation) do
+    create(
+      :relation,
+      relatable: product,
+      related_to: other1,
+      relation_type: relation_type,
+      position: 0
+    )
+  end
 
-  before { allow(controller).to receive(:spree_current_user).and_return(user) }
+  before { stub_authentication! }
   after  { Spree::Admin::ProductsController.clear_overrides! }
 
   context '.model_class' do
@@ -18,16 +26,15 @@ RSpec.describe Spree::Admin::RelationsController, type: :controller do
   end
 
   describe 'with JS' do
+    sign_in_as_admin!
+
     let(:valid_params) do
       {
         format: :js,
         product_id: product.id,
         relation: {
           related_to_id: other1.id,
-          relation_type: {
-            name: relation_type.name,
-            applies_to: relation_type.applies_to
-          }
+          relation_type_id: relation_type.id
         }
       }
     end
@@ -39,7 +46,6 @@ RSpec.describe Spree::Admin::RelationsController, type: :controller do
       end
 
       it 'returns success with valid params' do
-        skip 'nothing changed, maybe params not so valid?'
         expect {
           spree_post :create, valid_params
         }.to change(Spree::Relation, :count).by(1)
@@ -54,16 +60,15 @@ RSpec.describe Spree::Admin::RelationsController, type: :controller do
 
     context '#update' do
       it 'redirects to product/related url' do
-        spree_post :update, id: 1, relation: { discount_amount: 2.0 }
+        spree_post :update, product_id: product.id, id: 1, relation: { discount_amount: 2.0 }
         expect(response).to redirect_to(spree.admin_product_path(relation.relatable) + '/related')
       end
     end
 
     context '#destroy' do
       it 'records successfully' do
-        skip 'strange bug with delete record'
         expect {
-          spree_delete :destroy, id: 1, format: :js
+          spree_delete :destroy, product_id: product.id, id: 1, format: :js
         }.to change(Spree::Relation, :count).by(-1)
       end
     end
@@ -71,10 +76,18 @@ RSpec.describe Spree::Admin::RelationsController, type: :controller do
     context '#update_positions' do
       it 'returns the correct position of the related products' do
         other2    = create(:product)
-        relation2 = create(:relation, relatable: product, related_to: other2, relation_type: relation_type, position: 1)
+        relation2 = create(
+          :relation, relatable: product, related_to: other2, relation_type: relation_type, position: 1
+        )
 
         expect {
-          spree_post :update_positions, id: relation.id, positions: { relation.id => '1', relation2.id => '0' }, format: :js
+          params = {
+            product_id: product.id,
+            id: relation.id,
+            positions: { relation.id => '1', relation2.id => '0' },
+            format: :js
+          }
+          spree_post :update_positions, params
           relation.reload
         }.to change(relation, :position).from(0).to(1)
       end

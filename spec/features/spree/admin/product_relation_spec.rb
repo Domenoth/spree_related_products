@@ -12,7 +12,7 @@ RSpec.feature 'Admin Product Relation', :js do
   end
 
   scenario 'create relation' do
-    expect(page).to have_text 'Add Related Product'
+    expect(page).to have_text 'Add Related Product'.upcase
     expect(page).to have_text product.name
 
     within('#add-line-item') do
@@ -33,7 +33,13 @@ RSpec.feature 'Admin Product Relation', :js do
 
   context 'with relations' do
     given!(:relation) do
-      create(:relation, relatable: product, related_to: other, relation_type: relation_type, discount_amount: 0.5)
+      create(
+        :relation,
+        relatable: product,
+        related_to: other,
+        relation_type: relation_type,
+        discount_amount: 0.5
+      )
     end
 
     background do
@@ -42,7 +48,7 @@ RSpec.feature 'Admin Product Relation', :js do
     end
 
     scenario 'ensure content exist' do
-      expect(page).to have_text 'Add Related Product'
+      expect(page).to have_text 'Add Related Product'.upcase
       expect(page).to have_text product.name
       expect(page).to have_text other.name
 
@@ -66,14 +72,13 @@ RSpec.feature 'Admin Product Relation', :js do
 
     context 'delete' do
       scenario 'can remove records' do
-        skip 'strange bug with delete record'
+        expect(page).to have_text other.name
         within_row(1) do
           expect(column_text(2)).to eq other.name
-          click_icon :delete
+          click_icon :trash
         end
         page.driver.browser.switch_to.alert.accept unless Capybara.javascript_driver == :poltergeist
         wait_for_ajax
-        expect(page).to have_text 'successfully removed!'
         expect(page).not_to have_text other.name
       end
     end
